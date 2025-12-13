@@ -1,0 +1,25 @@
+# Keil Generated files
+*.uvguix.*
+*.uvoptx
+*.uvgui.*
+*.bak
+*.dep
+*.o
+*.d
+*.crf
+*.iex
+*.lnp
+*.sct
+*.lst
+*.map
+*.htm
+*.axf
+*.hex
+JLinkLog.txt
+*.scvd
+
+# Folders
+Objects/
+Listings/
+RTE/
+DebugConfig/
