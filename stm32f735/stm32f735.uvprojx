@@ -10,7 +10,7 @@
       <TargetName>Target 1</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
-      <pCCUsed>5060960::V5.06 update 7 (build 960)::.\ARMCC</pCCUsed>
+      <pCCUsed>5060750::V5.06 update 6 (build 750)::ARMCC</pCCUsed>
       <uAC6>0</uAC6>
       <TargetOption>
         <TargetCommonOption>
@@ -185,7 +185,6 @@
             <uocXRam>0</uocXRam>
             <RvdsVP>3</RvdsVP>
             <RvdsMve>0</RvdsMve>
-            <RvdsCdeCp>0</RvdsCdeCp>
             <hadIRAM2>1</hadIRAM2>
             <hadIROM2>0</hadIROM2>
             <StupSel>8</StupSel>
@@ -352,7 +351,7 @@
             <NoWarn>0</NoWarn>
             <uSurpInc>0</uSurpInc>
             <useXO>0</useXO>
-            <ClangAsOpt>1</ClangAsOpt>
+            <uClangAs>0</uClangAs>
             <VariousControls>
               <MiscControls></MiscControls>
               <Define></Define>
@@ -419,21 +418,6 @@
               <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal.c</FilePath>
             </File>
             <File>
-              <FileName>stm32h7xx_hal_adc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_adc.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_hal_adc_ex.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_adc_ex.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_hal_cec.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_cec.c</FilePath>
-            </File>
-            <File>
               <FileName>stm32h7xx_hal_comp.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_comp.c</FilePath>
@@ -467,16 +451,6 @@
               <FileName>stm32h7xx_hal_cryp_ex.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_cryp_ex.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_hal_dac.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_dac.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_hal_dac_ex.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_dac_ex.c</FilePath>
             </File>
             <File>
               <FileName>stm32h7xx_hal_dcmi.c</FileName>
@@ -517,16 +491,6 @@
               <FileName>stm32h7xx_hal_dts.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_dts.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_hal_eth.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_eth.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_hal_eth_ex.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_eth_ex.c</FilePath>
             </File>
             <File>
               <FileName>stm32h7xx_hal_exti.c</FileName>
@@ -619,16 +583,6 @@
               <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_iwdg.c</FilePath>
             </File>
             <File>
-              <FileName>stm32h7xx_hal_jpeg.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_jpeg.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_hal_lptim.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_lptim.c</FilePath>
-            </File>
-            <File>
               <FileName>stm32h7xx_hal_ltdc.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_ltdc.c</FilePath>
@@ -639,19 +593,9 @@
               <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_ltdc_ex.c</FilePath>
             </File>
             <File>
-              <FileName>stm32h7xx_hal_mdios.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_mdios.c</FilePath>
-            </File>
-            <File>
               <FileName>stm32h7xx_hal_mdma.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_mdma.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_hal_mmc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_mmc.c</FilePath>
             </File>
             <File>
               <FileName>stm32h7xx_hal_mmc_ex.c</FileName>
@@ -672,21 +616,6 @@
               <FileName>stm32h7xx_hal_nor.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_nor.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_hal_opamp.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_opamp.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_hal_opamp_ex.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_opamp_ex.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_hal_ospi.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_ospi.c</FilePath>
             </File>
             <File>
               <FileName>stm32h7xx_hal_otfdec.c</FileName>
@@ -717,11 +646,6 @@
               <FileName>stm32h7xx_hal_pwr_ex.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_pwr_ex.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_hal_qspi.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_qspi.c</FilePath>
             </File>
             <File>
               <FileName>stm32h7xx_hal_ramecc.c</FileName>
@@ -767,11 +691,6 @@
               <FileName>stm32h7xx_hal_sai_ex.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_sai_ex.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_hal_sd.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_sd.c</FilePath>
             </File>
             <File>
               <FileName>stm32h7xx_hal_sd_ex.c</FileName>
@@ -864,159 +783,14 @@
               <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_hal_wwdg.c</FilePath>
             </File>
             <File>
-              <FileName>stm32h7xx_ll_adc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_adc.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_ll_bdma.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_bdma.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_ll_comp.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_comp.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_ll_cordic.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_cordic.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_ll_crc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_crc.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_ll_crs.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_crs.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_ll_dac.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_dac.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_ll_delayblock.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_delayblock.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_ll_dma.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_dma.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_ll_dma2d.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_dma2d.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_ll_exti.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_exti.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_ll_fmac.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_fmac.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_ll_fmc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_fmc.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_ll_gpio.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_gpio.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_ll_hrtim.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_hrtim.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_ll_i2c.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_i2c.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_ll_lptim.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_lptim.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_ll_lpuart.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_lpuart.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_ll_mdma.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_mdma.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_ll_opamp.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_opamp.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_ll_pwr.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_pwr.c</FilePath>
-            </File>
-            <File>
               <FileName>stm32h7xx_ll_rcc.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_rcc.c</FilePath>
             </File>
             <File>
-              <FileName>stm32h7xx_ll_rng.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_rng.c</FilePath>
-            </File>
-            <File>
               <FileName>stm32h7xx_ll_rtc.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_rtc.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_ll_sdmmc.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_sdmmc.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_ll_spi.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_spi.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_ll_swpmi.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_swpmi.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_ll_tim.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_tim.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_ll_usart.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_usart.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_ll_usb.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_usb.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32h7xx_ll_utils.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Libraries\STM32H7xx_HAL_Driver\Src\stm32h7xx_ll_utils.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -1144,16 +918,6 @@
               <FilePath>.\RT-Thread\components\finsh\shell.c</FilePath>
             </File>
             <File>
-              <FileName>context_gcc.S</FileName>
-              <FileType>2</FileType>
-              <FilePath>.\RT-Thread\libcpu\arm\cortex-m7\context_gcc.S</FilePath>
-            </File>
-            <File>
-              <FileName>context_iar.S</FileName>
-              <FileType>2</FileType>
-              <FilePath>.\RT-Thread\libcpu\arm\cortex-m7\context_iar.S</FilePath>
-            </File>
-            <File>
               <FileName>context_rvds.S</FileName>
               <FileType>2</FileType>
               <FilePath>.\RT-Thread\libcpu\arm\cortex-m7\context_rvds.S</FilePath>
@@ -1206,14 +970,5 @@
       </file>
     </files>
   </RTE>
-
-  <LayerInfo>
-    <Layers>
-      <Layer>
-        <LayName>stm32f735</LayName>
-        <LayPrjMark>1</LayPrjMark>
-      </Layer>
-    </Layers>
-  </LayerInfo>
 
 </Project>

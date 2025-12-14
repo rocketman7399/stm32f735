@@ -40,7 +40,7 @@ void rt_hw_board_init(void)
 
 #ifdef RT_USING_CONSOLE
     /* ????????? "uart1" */
-    rt_console_set_device("uart1");
+    //rt_console_set_device("uart1");
 #endif
 }
 
