@@ -129,11 +129,11 @@ int main(void)
 /* =========================================================== */
 
 /* ??1: ?? Hello */
-void hello(void)
+void hello_user(void)
 {
     rt_kprintf("Hello! This is a custom command!\n");
 }
-MSH_CMD_EXPORT(hello, say hello to console);
+MSH_CMD_EXPORT(hello_user, say hello to console);
 
 void uart_test(void)
 {
@@ -149,3 +149,4 @@ void uart_test(void)
     rt_kprintf("Send Done!\n");
 }
 MSH_CMD_EXPORT(uart_test, send data to UART7 and USART1);
+
