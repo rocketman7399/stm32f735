@@ -37,7 +37,6 @@ void rt_hw_console_output(const char *str)
         if (*(str + i) == '\n')
         {
             /* 遇到换行符，先发一个回车 \r */
-            /* ⚠️ 关键修改点 3：发送给 huart3 */
             HAL_UART_Transmit(&huart3, (uint8_t *)&a, 1, 1000);
         }
         /* 发送当前字符给 huart3 */
