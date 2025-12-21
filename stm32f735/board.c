@@ -1,4 +1,4 @@
-/* board.c - STM32H7 Nano 适配版 */
+/* board.c - STM32H7*/
 #include <rtthread.h>
 #include <rthw.h>
 #include "stm32h7xx_hal.h"
