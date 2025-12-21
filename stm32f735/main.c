@@ -1,29 +1,47 @@
-/* main.c - STM32H735G-DK (全串口中断接收 + Hex版AES加解密) */
-/* 运行环境：DTCM (IRAM1 Start: 0x20000000) */
+/* main.c - STM32H735G-DK 终极完整版 */
+/* 方案：UART4 (D14/D15) + RTOS + AES-128 */
+/* 运行环境：DTCM (0x20000000) */
 
 #include "stm32h7xx_hal.h"
 #include "rtthread.h"
 #include "board.h"
 #include <string.h>
+#include <stdio.h>
 
 /* =========================================================== */
-/* 0. 全局变量与句柄定义 */
+/* 0. 全局变量与对象 */
 /* =========================================================== */
-UART_HandleTypeDef huart3; /* Console (ST-Link) */
-UART_HandleTypeDef huart1; /* D0/D1 (Arduino) */
-UART_HandleTypeDef huart7; /* PMOD (左上角) */
-UART_HandleTypeDef huart2; /* STMod+ (Fan-out小板子) */
+UART_HandleTypeDef huart3; /* Console (USB) */
+UART_HandleTypeDef huart1; /* D0/D1 */
+UART_HandleTypeDef huart4; /* [核心] D14/D15 (通用串口) */
+UART_HandleTypeDef huart2; /* STMod+ */
 
-/* 接收缓存 (1字节，用于中断接收) */
+/* 接收缓存 (单字节中断用) */
 uint8_t rx_buf_u1;
-uint8_t rx_buf_u7;
+uint8_t rx_buf_u4;
 uint8_t rx_buf_u2;
 
+/* 消息队列句柄 */
+rt_mq_t uart_rx_mq = RT_NULL;
+
+/* 消息包结构体 */
+struct RxMsg {
+    uint8_t source_id; /* 1=D0/D1, 2=STMod+, 4=D14/D15 */
+    uint8_t data;      /* 数据内容 */
+};
+
+/* --- AES 配置 --- */
+#define AES_BLOCK_SIZE 16
+#define AES_MAX_BUF_SIZE 128 
+#define Nb 4
+#define Nk 4
+#define Nr 10
+
 /* =========================================================== */
-/* 1. AES-128 核心算法 (S-Box, Rcon, Implementation) */
+/* 1. AES-128 完整算法实现 */
 /* =========================================================== */
 
-/* S-Box (替换表 - 加密用) */
+/* S-Box (替换表) */
 static const uint8_t sbox[256] = {
   0x63,0x7c,0x77,0x7b,0xf2,0x6b,0x6f,0xc5,0x30,0x01,0x67,0x2b,0xfe,0xd7,0xab,0x76,
   0xca,0x82,0xc9,0x7d,0xfa,0x59,0x47,0xf0,0xad,0xd4,0xa2,0xaf,0x9c,0xa4,0x72,0xc0,
@@ -43,7 +61,7 @@ static const uint8_t sbox[256] = {
   0x8c,0xa1,0x89,0x0d,0xbf,0xe6,0x42,0x68,0x41,0x99,0x2d,0x0f,0xb0,0x54,0xbb,0x16 
 };
 
-/* Inverse S-Box (逆替换表 - 解密用) */
+/* Inverse S-Box (解密替换表) */
 static const uint8_t rsbox[256] = {
   0x52,0x09,0x6a,0xd5,0x30,0x36,0xa5,0x38,0xbf,0x40,0xa3,0x9e,0x81,0xf3,0xd7,0xfb,
   0x7c,0xe3,0x39,0x82,0x9b,0x2f,0xff,0x87,0x34,0x8e,0x43,0x44,0xc4,0xde,0xe9,0xcb,
@@ -65,11 +83,7 @@ static const uint8_t rsbox[256] = {
 
 static const uint8_t Rcon[11] = { 0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36 };
 
-#define Nb 4
-#define Nk 4
-#define Nr 10
-
-/* 密钥扩展 */
+/* AES 数学核心函数 */
 void KeyExpansion(uint8_t* RoundKey, const uint8_t* Key) {
   unsigned i, j, k;
   uint8_t tempa[4]; 
@@ -100,7 +114,6 @@ void KeyExpansion(uint8_t* RoundKey, const uint8_t* Key) {
   }
 }
 
-/* AES 内部数学运算 (GF域) */
 void AddRoundKey(uint8_t round, uint8_t* state, const uint8_t* RoundKey) {
   for (uint8_t i = 0; i < 4; ++i) {
     for (uint8_t j = 0; j < 4; ++j) {
@@ -108,9 +121,11 @@ void AddRoundKey(uint8_t round, uint8_t* state, const uint8_t* RoundKey) {
     }
   }
 }
+
 void SubBytes(uint8_t* state) {
   for (uint8_t i = 0; i < 16; ++i) state[i] = sbox[state[i]];
 }
+
 void ShiftRows(uint8_t* state) {
   uint8_t temp;
   temp = state[1]; state[1] = state[5]; state[5] = state[9]; state[9] = state[13]; state[13] = temp;
@@ -118,7 +133,9 @@ void ShiftRows(uint8_t* state) {
   temp = state[6]; state[6] = state[14]; state[14] = temp;
   temp = state[3]; state[3] = state[15]; state[15] = state[11]; state[11] = state[7]; state[7] = temp;
 }
+
 uint8_t xtime(uint8_t x) { return ((x<<1) ^ (((x>>7) & 1) * 0x1b)); }
+
 void MixColumns(uint8_t* state) {
   uint8_t i, Tmp, Tm, t;
   for (i = 0; i < 4; ++i) {  
@@ -131,7 +148,6 @@ void MixColumns(uint8_t* state) {
   }
 }
 
-/* 加密核心函数 */
 void Cipher(uint8_t* state, const uint8_t* RoundKey) {
   uint8_t round = 0;
   AddRoundKey(0, state, RoundKey); 
@@ -141,7 +157,6 @@ void Cipher(uint8_t* state, const uint8_t* RoundKey) {
   SubBytes(state); ShiftRows(state); AddRoundKey(Nr, state, RoundKey);
 }
 
-/* 解密辅助运算 */
 void InvShiftRows(uint8_t* state) {
   uint8_t temp;
   temp = state[13]; state[13] = state[9]; state[9] = state[5]; state[5] = state[1]; state[1] = temp;
@@ -149,9 +164,11 @@ void InvShiftRows(uint8_t* state) {
   temp = state[6]; state[6] = state[14]; state[14] = temp;
   temp = state[3]; state[3] = state[7]; state[7] = state[11]; state[11] = state[15]; state[15] = temp;
 }
+
 void InvSubBytes(uint8_t* state) {
   for (uint8_t i = 0; i < 16; ++i) state[i] = rsbox[state[i]];
 }
+
 uint8_t Multiply(uint8_t x, uint8_t y) {
   return (((y & 1) * x) ^
        ((y>>1 & 1) * xtime(x)) ^
@@ -159,6 +176,7 @@ uint8_t Multiply(uint8_t x, uint8_t y) {
        ((y>>3 & 1) * xtime(xtime(xtime(x)))) ^
        ((y>>4 & 1) * xtime(xtime(xtime(xtime(x)))))); 
 }
+
 void InvMixColumns(uint8_t* state) {
   int i;
   uint8_t a, b, c, d;
@@ -171,7 +189,6 @@ void InvMixColumns(uint8_t* state) {
   }
 }
 
-/* 解密核心函数 */
 void InvCipher(uint8_t* state, const uint8_t* RoundKey) {
   uint8_t round = 0;
   AddRoundKey(Nr, state, RoundKey); 
@@ -181,7 +198,6 @@ void InvCipher(uint8_t* state, const uint8_t* RoundKey) {
   InvShiftRows(state); InvSubBytes(state); AddRoundKey(0, state, RoundKey);
 }
 
-/* 对外接口：AES-128 ECB 加密 */
 void AES128_ECB_encrypt(uint8_t* input, const uint8_t* key, uint8_t *output){
   uint8_t RoundKey[176];
   KeyExpansion(RoundKey, key);
@@ -189,7 +205,6 @@ void AES128_ECB_encrypt(uint8_t* input, const uint8_t* key, uint8_t *output){
   Cipher(output, RoundKey);
 }
 
-/* 对外接口：AES-128 ECB 解密 */
 void AES128_ECB_decrypt(uint8_t* input, const uint8_t* key, uint8_t *output){
   uint8_t RoundKey[176];
   KeyExpansion(RoundKey, key);
@@ -198,15 +213,56 @@ void AES128_ECB_decrypt(uint8_t* input, const uint8_t* key, uint8_t *output){
 }
 
 /* =========================================================== */
-/* 2. 时钟与电源配置 (保持 SMPS 供电，防止变砖) */
+/* 2. AES 字符串安全封装 (PKCS#7) */
+/* =========================================================== */
+void AES128_ECB_encrypt_string(char* input_str, const uint8_t* key, uint8_t* output_buf, uint32_t* out_len)
+{
+    uint32_t input_len = strlen(input_str);
+    uint32_t padded_len = (input_len / AES_BLOCK_SIZE + 1) * AES_BLOCK_SIZE;
+    uint8_t temp_buf[AES_MAX_BUF_SIZE] = {0};
+    
+    if (padded_len > AES_MAX_BUF_SIZE) {
+        rt_kprintf("[AES Error] Input string too long!\n");
+        return;
+    }
+    memcpy(temp_buf, input_str, input_len);
+    uint8_t pad_value = padded_len - input_len;
+    for (uint32_t i = input_len; i < padded_len; i++) temp_buf[i] = pad_value;
+
+    for (uint32_t i = 0; i < padded_len; i += AES_BLOCK_SIZE) {
+        AES128_ECB_encrypt(&temp_buf[i], key, &output_buf[i]);
+    }
+    *out_len = padded_len;
+}
+
+void AES128_ECB_decrypt_string(uint8_t* input_buf, uint32_t input_len, const uint8_t* key, char* output_str)
+{
+    uint8_t temp_buf[AES_MAX_BUF_SIZE] = {0};
+    if (input_len % AES_BLOCK_SIZE != 0) {
+        rt_kprintf("[AES Error] Invalid cipher length!\n");
+        return;
+    }
+    for (uint32_t i = 0; i < input_len; i += AES_BLOCK_SIZE) {
+        AES128_ECB_decrypt(&input_buf[i], key, &temp_buf[i]);
+    }
+    uint8_t pad_value = temp_buf[input_len - 1];
+    if (pad_value > AES_BLOCK_SIZE || pad_value == 0) {
+         rt_kprintf("[AES Error] Padding check failed: %02X\n", pad_value);
+         return; 
+    }
+    uint32_t real_len = input_len - pad_value;
+    memcpy(output_str, temp_buf, real_len);
+    output_str[real_len] = '\0'; 
+}
+
+/* =========================================================== */
+/* 3. 硬件初始化 */
 /* =========================================================== */
 void SystemClock_Config(void)
 {
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-
-    HAL_PWREx_ConfigSupply(PWR_DIRECT_SMPS_SUPPLY); /* 救砖关键 */
-    
+    HAL_PWREx_ConfigSupply(PWR_DIRECT_SMPS_SUPPLY); 
     __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
     while(!__HAL_PWR_GET_FLAG(PWR_FLAG_VOSRDY)) {}
 
@@ -226,17 +282,13 @@ void SystemClock_Config(void)
     RCC_ClkInitStruct.APB1CLKDivider = RCC_APB1_DIV1;
     RCC_ClkInitStruct.APB2CLKDivider = RCC_APB2_DIV1;
     RCC_ClkInitStruct.APB4CLKDivider = RCC_APB4_DIV1;
-
     if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK) while(1);
 }
 
-/* =========================================================== */
-/* 3. 串口初始化 (通用配置 + 开启中断准备) */
-/* =========================================================== */
 void UART_Init_Common(UART_HandleTypeDef *huart, USART_TypeDef *instance)
 {
     huart->Instance = instance;
-    huart->Init.BaudRate = 115200; /* 统一 115200 */
+    huart->Init.BaudRate = 115200;
     huart->Init.WordLength = UART_WORDLENGTH_8B;
     huart->Init.StopBits = UART_STOPBITS_1;
     huart->Init.Parity = UART_PARITY_NONE;
@@ -245,11 +297,9 @@ void UART_Init_Common(UART_HandleTypeDef *huart, USART_TypeDef *instance)
     HAL_UART_Init(huart);
 }
 
-/* 1. Console: USART3 (PD8/PD9) */
-int MX_USART3_UART_Init(void)
-{
-    __HAL_RCC_USART3_CLK_ENABLE();
-    __HAL_RCC_GPIOD_CLK_ENABLE(); 
+/* 1. Console (USART3) */
+int MX_USART3_UART_Init(void) {
+    __HAL_RCC_USART3_CLK_ENABLE(); __HAL_RCC_GPIOD_CLK_ENABLE(); 
     GPIO_InitTypeDef GPIO_InitStruct = {0};
     GPIO_InitStruct.Pin = GPIO_PIN_8 | GPIO_PIN_9;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -260,11 +310,9 @@ int MX_USART3_UART_Init(void)
 }
 INIT_BOARD_EXPORT(MX_USART3_UART_Init);
 
-/* 2. Arduino: USART1 (PB14/PB15) */
-void MX_USART1_Init(void)
-{
-    __HAL_RCC_USART1_CLK_ENABLE();
-    __HAL_RCC_GPIOB_CLK_ENABLE();
+/* 2. D0/D1 (USART1) */
+void MX_USART1_Init(void) {
+    __HAL_RCC_USART1_CLK_ENABLE(); __HAL_RCC_GPIOB_CLK_ENABLE();
     GPIO_InitTypeDef GPIO_InitStruct = {0};
     GPIO_InitStruct.Pin = GPIO_PIN_14 | GPIO_PIN_15;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -273,24 +321,27 @@ void MX_USART1_Init(void)
     UART_Init_Common(&huart1, USART1);
 }
 
-/* 3. PMOD: UART7 (PF7/PF6) */
-void MX_UART7_Init(void)
-{
-    __HAL_RCC_UART7_CLK_ENABLE();
-    __HAL_RCC_GPIOF_CLK_ENABLE();
+/* 3. [关键] D14/D15 (UART4) */
+void MX_UART4_Init(void) {
+    __HAL_RCC_UART4_CLK_ENABLE(); 
+    __HAL_RCC_GPIOB_CLK_ENABLE(); 
+    
     GPIO_InitTypeDef GPIO_InitStruct = {0};
-    GPIO_InitStruct.Pin = GPIO_PIN_6 | GPIO_PIN_7;
+    
+    /* [硬件接线] D14(TX) -> PB9, D15(RX) -> PB8 */
+    GPIO_InitStruct.Pin = GPIO_PIN_8 | GPIO_PIN_9;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-    GPIO_InitStruct.Alternate = GPIO_AF7_UART7;
-    HAL_GPIO_Init(GPIOF, &GPIO_InitStruct);
-    UART_Init_Common(&huart7, UART7);
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF8_UART4; /* 复用为 UART4 */
+    
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+    UART_Init_Common(&huart4, UART4);
 }
 
-/* 4. STMod+: USART2 (PD5/PD6) */
-void MX_USART2_UART_Init(void)
-{
-    __HAL_RCC_USART2_CLK_ENABLE();
-    __HAL_RCC_GPIOD_CLK_ENABLE();
+/* 4. STMod+ (USART2) */
+void MX_USART2_UART_Init(void) {
+    __HAL_RCC_USART2_CLK_ENABLE(); __HAL_RCC_GPIOD_CLK_ENABLE();
     GPIO_InitTypeDef GPIO_InitStruct = {0};
     GPIO_InitStruct.Pin = GPIO_PIN_5 | GPIO_PIN_6;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -300,57 +351,97 @@ void MX_USART2_UART_Init(void)
 }
 
 /* =========================================================== */
-/* 4. 接收中断回调 (当收到数据时触发) */
+/* 4. 中断逻辑 (Producer) */
 /* =========================================================== */
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-    /* 逻辑：收到数据 -> 打印16进制 -> 重新开启监听 */
-    
+    struct RxMsg msg;
+
     if(huart->Instance == USART1) { // D0/D1
-        rt_kprintf("[D0/D1 RX]: %02X\n", rx_buf_u1);
+        msg.source_id = 1; msg.data = rx_buf_u1;
         HAL_UART_Receive_IT(&huart1, &rx_buf_u1, 1);
     }
-    else if(huart->Instance == UART7) { // PMOD
-        rt_kprintf("[PMOD RX]: %02X\n", rx_buf_u7);
-        HAL_UART_Receive_IT(&huart7, &rx_buf_u7, 1);
+    else if(huart->Instance == UART4) { // D14/D15
+        msg.source_id = 4; msg.data = rx_buf_u4;
+        HAL_UART_Receive_IT(&huart4, &rx_buf_u4, 1);
     }
     else if(huart->Instance == USART2) { // STMod+
-        rt_kprintf("[STMod+ RX]: %02X\n", rx_buf_u2);
+        msg.source_id = 2; msg.data = rx_buf_u2;
         HAL_UART_Receive_IT(&huart2, &rx_buf_u2, 1);
+    }
+    else { return; }
+
+    if (uart_rx_mq != RT_NULL) {
+        rt_mq_send(uart_rx_mq, &msg, sizeof(struct RxMsg));
     }
 }
 
 /* =========================================================== */
-/* 5. Main 主函数 */
+/* 5. 线程逻辑 (Consumer) */
+/* =========================================================== */
+void uart_process_thread_entry(void *parameter)
+{
+    struct RxMsg msg;
+    char line_buf[64];
+    uint8_t line_idx = 0;
+
+    while (1)
+    {
+        if (rt_mq_recv(uart_rx_mq, &msg, sizeof(struct RxMsg), RT_WAITING_FOREVER) == RT_EOK)
+        {
+            /* D14/D15 数据处理 */
+            if (msg.source_id == 4) {
+                rt_kprintf("[UART4/D14D15]: %02X (%c)\n", msg.data, msg.data);
+            }
+            /* STMod+ 数据 */
+            else if (msg.source_id == 2) {
+                if (msg.data == '\n' || msg.data == '\r') {
+                    line_buf[line_idx] = '\0';
+                    if (line_idx > 0) rt_kprintf("[STMod+]: %s\n", line_buf);
+                    line_idx = 0;
+                } else {
+                    if (line_idx < 63) line_buf[line_idx++] = msg.data;
+                }
+            }
+            /* D0/D1 数据 */
+            else if (msg.source_id == 1) {
+                rt_kprintf("[D0/D1]: %02X\n", msg.data);
+            }
+        }
+    }
+}
+
+/* =========================================================== */
+/* 6. Main 主函数 */
 /* =========================================================== */
 int main(void)
 {
-    HAL_Init(); // 基础初始化
-
-    /* 1. 初始化 LED */
+    HAL_Init(); 
+    
     __HAL_RCC_GPIOC_CLK_ENABLE();
     GPIO_InitTypeDef GPIO_InitStruct = {0};
     GPIO_InitStruct.Pin = GPIO_PIN_2 | GPIO_PIN_3;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-    /* 2. 初始化串口 */
-    MX_USART1_Init(); // D0/D1
-    MX_UART7_Init();  // PMOD
-    MX_USART2_UART_Init(); // STMod+ (小板子)
+    /* 串口初始化 */
+    MX_USART1_Init(); 
+    MX_UART4_Init();  /* D14/D15 (重点) */
+    MX_USART2_UART_Init(); 
 
-    /* 3. 开启接收中断 (竖起耳朵听) */
+    uart_rx_mq = rt_mq_create("u_mq", sizeof(struct RxMsg), 256, RT_IPC_FLAG_FIFO);
+
+    rt_thread_t tid = rt_thread_create("u_task", uart_process_thread_entry, RT_NULL, 2048, 20, 10);
+    if (tid != RT_NULL) rt_thread_startup(tid);
+
     HAL_UART_Receive_IT(&huart1, &rx_buf_u1, 1);
-    HAL_UART_Receive_IT(&huart7, &rx_buf_u7, 1);
+    HAL_UART_Receive_IT(&huart4, &rx_buf_u4, 1); /* 开启 D14/D15 接收 */
     HAL_UART_Receive_IT(&huart2, &rx_buf_u2, 1);
 
-    rt_kprintf("\n==============================================\n");
-    rt_kprintf(" STM32H735 Hex AES & UART System Ready\n");
-    rt_kprintf(" Power: SMPS | Baud: 115200 (ALL)\n");
-    rt_kprintf("==============================================\n");
-    rt_kprintf("Commands:\n");
-    rt_kprintf(" 1. uart_test : Test TX connections\n");
-    rt_kprintf(" 2. aes_test  : Test Hex Encryption/Decryption\n");
+    rt_kprintf("\n=== STM32H7 System Ready (UART4 Mode) ===\n");
+    rt_kprintf("1. D14/D15 (UART4) - User Port\n");
+    rt_kprintf("2. D0/D1 (USART1)\n");
+    rt_kprintf("3. STMod+ (USART2)\n");
 
     while (1)
     {
@@ -360,63 +451,34 @@ int main(void)
 }
 
 /* =========================================================== */
-/* 6. 测试命令1：串口连通性测试 (TX) */
+/* 7. 测试命令 (MSH) */
 /* =========================================================== */
-void uart_test(void)
-{
-    char msg[] = "Ping from STM32!\r\n";
-    HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), 100);
-    HAL_UART_Transmit(&huart7, (uint8_t*)msg, strlen(msg), 100);
-    HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 100);
-    rt_kprintf("Sent ping to D0/D1, PMOD, STMod+\n");
-}
-MSH_CMD_EXPORT(uart_test, Ping all uarts);
-
-/* =========================================================== */
-/* 7. 测试命令2：纯16进制 AES 加解密 */
-/* =========================================================== */
-void aes_test(void)
-{
-    /* 1. 密钥 (FIPS-197 Test Vector) */
+void aes_test_cmd(void) {
     const uint8_t key[16] = {
         0x2B, 0x7E, 0x15, 0x16, 0x28, 0xAE, 0xD2, 0xA6,
         0xAB, 0xF7, 0x15, 0x88, 0x09, 0xCF, 0x4F, 0x3C
     };
+    char plain_text[] = "AES on STM32H7!"; 
+    uint8_t encrypted_buf[64] = {0};
+    char decrypted_text[64] = {0};
+    uint32_t cipher_len = 0;
 
-    /* 2. 明文 (00-0F 纯 Hex) */
-    uint8_t plain_hex[16] = {
-        0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
-        0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF
-    };
-
-    uint8_t encrypted_hex[16] = {0}; 
-    uint8_t decrypted_hex[16] = {0}; 
-
-    rt_kprintf("\n=== AES-128 Hex Test ===\n");
-    
-    /* A. 加密 */
-    AES128_ECB_encrypt(plain_hex, key, encrypted_hex);
-    
-    rt_kprintf("[Encrypted Hex]: ");
-    for(int i=0; i<16; i++) {
-        rt_kprintf("%02X ", encrypted_hex[i]);
-        /* 同时通过串口发给电脑 (STMod+) 方便验证 */
-        /* 发送的是原始二进制，SSCOM 请勾选 Hex 显示 */
-        HAL_UART_Transmit(&huart2, &encrypted_hex[i], 1, 10);
-    }
+    rt_kprintf("\n--- AES Test ---\n");
+    AES128_ECB_encrypt_string(plain_text, key, encrypted_buf, &cipher_len);
+    rt_kprintf("Encrypted: ");
+    for(int i=0; i<cipher_len; i++) rt_kprintf("%02X ", encrypted_buf[i]);
     rt_kprintf("\n");
-
-    /* B. 解密 */
-    AES128_ECB_decrypt(encrypted_hex, key, decrypted_hex);
-    
-    rt_kprintf("[Decrypted Hex]: ");
-    for(int i=0; i<16; i++) rt_kprintf("%02X ", decrypted_hex[i]);
-    rt_kprintf("\n");
-
-    /* C. 验证 */
-    if(memcmp(plain_hex, decrypted_hex, 16) == 0)
-        rt_kprintf("Result: SUCCESS (Matched)\n");
-    else
-        rt_kprintf("Result: FAILED\n");
+    AES128_ECB_decrypt_string(encrypted_buf, cipher_len, key, decrypted_text);
+    rt_kprintf("Decrypted: %s\n", decrypted_text);
 }
-MSH_CMD_EXPORT(aes_test, AES Hex Test);
+MSH_CMD_EXPORT(aes_test_cmd, AES Test);
+
+void uart_test(void)
+{
+    char msg[] = "Ping!\r\n";
+    HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), 100);
+    HAL_UART_Transmit(&huart4, (uint8_t*)msg, strlen(msg), 100);
+    HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 100);
+    rt_kprintf("Ping sent to D14/D15, D0/D1, STMod+.\n");
+}
+MSH_CMD_EXPORT(uart_test, Ping all uarts);
