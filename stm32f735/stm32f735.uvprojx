@@ -352,7 +352,7 @@
             <NoWarn>0</NoWarn>
             <uSurpInc>0</uSurpInc>
             <useXO>0</useXO>
-            <ClangAsOpt>1</ClangAsOpt>
+            <ClangAsOpt>4</ClangAsOpt>
             <VariousControls>
               <MiscControls></MiscControls>
               <Define></Define>
@@ -904,11 +904,6 @@
               <FilePath>.\RT-Thread\components\finsh\cmd.c</FilePath>
             </File>
             <File>
-              <FileName>finsh_port.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\RT-Thread\components\finsh\finsh_port.c</FilePath>
-            </File>
-            <File>
               <FileName>msh.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\RT-Thread\components\finsh\msh.c</FilePath>
@@ -971,5 +966,14 @@
       </file>
     </files>
   </RTE>
+
+  <LayerInfo>
+    <Layers>
+      <Layer>
+        <LayName>stm32f735</LayName>
+        <LayPrjMark>1</LayPrjMark>
+      </Layer>
+    </Layers>
+  </LayerInfo>
 
 </Project>
