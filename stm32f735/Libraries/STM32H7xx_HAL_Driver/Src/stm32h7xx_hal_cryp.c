@@ -697,7 +697,7 @@ __weak void HAL_CRYP_MspDeInit(CRYP_HandleTypeDef *hcryp)
   *          @arg @ref HAL_CRYP_MSPINIT_CB_ID MspInit callback ID
   *          @arg @ref HAL_CRYP_MSPDEINIT_CB_ID MspDeInit callback ID
   * @param pCallback pointer to the Callback function
-  * @retval status
+  * @retval status  
   */
 HAL_StatusTypeDef HAL_CRYP_RegisterCallback(CRYP_HandleTypeDef *hcryp, HAL_CRYP_CallbackIDTypeDef CallbackID,
                                             pCRYP_CallbackTypeDef pCallback)
